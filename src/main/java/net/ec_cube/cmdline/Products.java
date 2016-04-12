@@ -14,16 +14,22 @@
 
 package net.ec_cube.cmdline;
 
+import java.util.List;
+
 import com.google.api.client.util.Key;
 
 /**
  * @author kentaro_ohkouchi@google.com (Your Name Here)
  *
  */
-public class ProductsAuthSample {
+public class Products {
 
   @Key("product")
   public Product product;
+
+  @Key("image")
+  public List<ProductImage> image;
+
   @Key
   public int limit;
 

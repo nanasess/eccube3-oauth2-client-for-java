@@ -119,8 +119,26 @@ public class OAuth2Sample {
         HttpResponse response = request.execute();
 
         JsonObjectParser p = (JsonObjectParser) request.getParser();
-        ProductsAuthSample productFeed = p.parseAndClose(response.getContent(),
-                response.getContentCharset(), ProductsAuthSample.class);
+        ProductResults products = p.parseAndClose(response.getContent(), response.getContentCharset(), ProductResults.class);
+        for (Products productsAuthSample : products.Product) {
+            System.out.println(productsAuthSample.product.name);
+            for (ProductImage image : productsAuthSample.image) {
+                System.out.println(image.fileName);
+            }
+        }
+    }
+
+    private static void run2(HttpRequestFactory requestFactory) throws Exception {
+        Properties authProp = getAuthorizationProperties();
+
+        HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(
+                authProp.getProperty("RESOURCE2")));
+        request.setParser(new JsonObjectParser(new JacksonFactory()));
+        HttpResponse response = request.execute();
+
+        JsonObjectParser p = (JsonObjectParser) request.getParser();
+        Products productFeed = p.parseAndClose(response.getContent(),
+                response.getContentCharset(), Products.class);
 
         Product product = productFeed.product;
         System.out.println("ID: " + product.id);
@@ -165,6 +183,7 @@ public class OAuth2Sample {
                         }
                     });
             run(requestFactory);
+            run2(requestFactory);
             // Success!
             return;
         } catch (IOException e) {
