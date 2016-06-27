@@ -19,7 +19,8 @@ AUTHORIZATION_ENDPOINT=https://<ec-cube-host>/admin/OAuth2/v0/authorize
 ## Token Endpoint
 TOKEN_ENDPOINT=https://<ec-cube-host>/OAuth2/v0/token
 ## Resource
-RESOURCE=https://<ec-cube-host>/api/v0/productsauthsample/1
+RESOURCE=https://<ec-cube-host>/api/v0/product
+BASEURL=https://<ec-cube-host>/api/v0
 ```
 
 `redirect_uri` は **http://127.0.0.1:8080/Callback** を指定してください
