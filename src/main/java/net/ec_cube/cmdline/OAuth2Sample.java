@@ -9,15 +9,19 @@ import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpContent;
+import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.util.GenericData;
 import com.google.api.client.util.store.DataStoreFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 
@@ -49,7 +53,7 @@ public class OAuth2Sample {
     private static FileDataStoreFactory DATA_STORE_FACTORY;
 
     /** OAuth 2 scope. */
-    private static final String SCOPE = "read write";
+    private static final String SCOPE = "order_read product_read product_write product_class_read product_class_write product_stock_read product_stock_write";
 
     /** Global instance of the HTTP transport. */
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
@@ -110,7 +114,7 @@ public class OAuth2Sample {
         return app.authorize("user");
     }
 
-    private static void run(HttpRequestFactory requestFactory) throws Exception {
+    private static void listProducts(HttpRequestFactory requestFactory) throws Exception {
         Properties authProp = getAuthorizationProperties();
 
         HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(
@@ -120,19 +124,16 @@ public class OAuth2Sample {
 
         JsonObjectParser p = (JsonObjectParser) request.getParser();
         ProductResults products = p.parseAndClose(response.getContent(), response.getContentCharset(), ProductResults.class);
-        for (Products productsAuthSample : products.Product) {
-            System.out.println(productsAuthSample.product.name);
-            for (ProductImage image : productsAuthSample.image) {
-                System.out.println(image.fileName);
-            }
+        for (Product product : products.Product) {
+            System.out.println(product.name);
         }
     }
 
-    private static void run2(HttpRequestFactory requestFactory) throws Exception {
+    private static void printProductDetail(HttpRequestFactory requestFactory, int id) throws Exception {
         Properties authProp = getAuthorizationProperties();
 
         HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(
-                authProp.getProperty("RESOURCE2")));
+                authProp.getProperty("BASEURL") + "/product/" + String.valueOf(id)));
         request.setParser(new JsonObjectParser(new JacksonFactory()));
         HttpResponse response = request.execute();
 
@@ -144,6 +145,86 @@ public class OAuth2Sample {
         System.out.println("ID: " + product.id);
         System.out.println("name: " + product.name);
         System.out.println("DescriptionDetail: " + product.descriptionDetail);
+    }
+
+    private static void doOperationProduct(HttpRequestFactory requestFactory) throws Exception {
+        int productId = createProduct(requestFactory, "Java で作った商品", 999999999);
+        System.out.println("Created by productId: " + productId);
+
+        GenericData data = new GenericData();
+        data.put("name", "商品名を変更しました");
+        if (executeUpdate(requestFactory, "product", productId, data)) {
+            System.out.println("Updated by");
+            printProductDetail(requestFactory, productId);
+        }
+
+        if (executeDelete(requestFactory, "product", productId)) {
+            System.out.println("商品ID: " + productId + " を削除しました");
+        }
+    }
+
+    private static int createProduct(HttpRequestFactory requestFactory, String productName, int price02) throws Exception {
+        Properties authProp = getAuthorizationProperties();
+        GenericData product = new GenericData();
+        product.put("name", productName);
+        product.put("Creator", createGenericObject(2));
+        product.put("Status", createGenericObject(1));
+        product.put("del_flg", 0);
+        String location = executePost(requestFactory, "product", product);
+        int product_id = Integer.parseInt(location.replaceAll(authProp.getProperty("RESOURCE") + "/", ""));
+
+        GenericData productClass = new GenericData();
+        productClass.put("Product", createGenericObject(product_id));
+        productClass.put("price02", price02);
+        productClass.put("stock_unlimited", 1);
+        productClass.put("del_flg", 0);
+        productClass.put("product_id", product_id);
+        productClass.put("ProductType", createGenericObject(1));
+        productClass.put("Creator", createGenericObject(2));
+
+        String location2 = executePost(requestFactory, "product_class", productClass);
+        return product_id;
+    }
+
+    private static String executePost(HttpRequestFactory requestFactory, String table, GenericData data)
+            throws Exception {
+        Properties authProp = getAuthorizationProperties();
+        HttpContent content = new JsonHttpContent(new JacksonFactory(), data);
+        HttpRequest request = requestFactory
+                .buildPostRequest(new GenericUrl(authProp.getProperty("BASEURL") + "/" + table), content);
+        HttpResponse response = request.execute();
+        HttpHeaders headers = response.getHeaders();
+        if (response.getStatusCode() != 201) {
+            throw new Exception("HTTP Status: " + response.getStatusCode());
+        }
+        return headers.getLocation();
+    }
+
+    private static boolean executeUpdate(HttpRequestFactory requestFactory, String table, int id, GenericData data) throws Exception {
+        Properties authProp = getAuthorizationProperties();
+        HttpContent content = new JsonHttpContent(new JacksonFactory(), data);
+        HttpRequest request = requestFactory
+                .buildPutRequest(new GenericUrl(authProp.getProperty("BASEURL") + "/" + table + "/" + String.valueOf(id)), content);
+        HttpResponse response = request.execute();
+        if (response.getStatusCode() != 204) {
+            throw new Exception("HTTP Status: " + response.getStatusCode());
+        }
+        return true;
+    }
+
+    private static boolean executeDelete(HttpRequestFactory requestFactory, String table, int id) throws Exception {
+        Properties authProp = getAuthorizationProperties();
+        HttpRequest request = requestFactory.buildDeleteRequest(new GenericUrl(authProp.getProperty("BASEURL") + "/" + table + "/" + String.valueOf(id)));
+        HttpResponse response = request.execute();
+        if (response.getStatusCode() != 204) {
+            throw new Exception("HTTP Status: " + response.getStatusCode());
+        }
+        return true;
+    }
+    private static GenericData createGenericObject(int id) {
+        GenericData data = new GenericData();
+        data.put("id", id);
+        return data;
     }
 
     protected static Properties getAuthorizationProperties() throws Exception {
@@ -182,8 +263,9 @@ public class OAuth2Sample {
                             request.setParser(new JsonObjectParser(JSON_FACTORY));
                         }
                     });
-            run(requestFactory);
-            run2(requestFactory);
+            listProducts(requestFactory);
+            printProductDetail(requestFactory, 1);
+            doOperationProduct(requestFactory);
             // Success!
             return;
         } catch (IOException e) {

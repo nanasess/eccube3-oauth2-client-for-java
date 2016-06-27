@@ -6,8 +6,8 @@ import com.google.api.client.util.Key;
 
 public class ProductResults {
 
-    @Key("products")
-    public List<Products> Product;
+    @Key("product")
+    public List<Product> Product;
 
     @Key
     public Metadata metadata;
