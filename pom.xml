@@ -3,7 +3,7 @@
   <groupId>net.ec_cube</groupId>
   <artifactId>eccube3-oauth2-client-for-java</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <packaging>war</packaging>
+  <packaging>jar</packaging>
   <name>EC-CUBE3 OAuth2.0 client for Java</name>
   <description>OAuth2.0 Authorization example for Java</description>
 

@@ -1,6 +1,9 @@
 EC-CUBE3 OAuth2.0 Client for Java
 ===================================
 
+設定方法
+----------
+
 ```
 authorization.properties を以下のように設定してください
 ## Client ID
@@ -20,3 +23,10 @@ RESOURCE=https://<ec-cube-host>/api/v0/productsauthsample/1
 ```
 
 `redirect_uri` は **http://127.0.0.1:8080/Callback** を指定してください
+
+実行方法
+-----------
+
+```
+mvn compile exec:java
+```
